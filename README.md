@@ -25,7 +25,7 @@ Every message starts with a 1 byte flag indicating what it is, followed by a var
 
 5. TCP_DATA - [Flag (0x05) - 1 byte]_[Packet # - 5 bytes]_[DATA]
 
-6. UDP_DATA - [Flag (0x06) - 1 byte]_[Packet # - 5 bytes]_[Checksum - 2 bytes]_[DATA]
+6. UDP_DATA - [Flag (0x06) - 1 byte]_[Packet # - 5 bytes]_[Checksum - 4 bytes]_[DATA]
 
 7. FILE_RECIEVED_ACK - [Flag (0x07) - 1 byte]_[0x0 = TCP, 0x1 = UDP File Received, 0x2 = UDP Resend Packets - 1 byte]
 
@@ -50,7 +50,7 @@ Protocol:
   - Divides file 1 KB per packet
   - Sends UDP_SEND_REQUEST message with filename and # of packets to expect
   - Sends UDP_DATA message (starting at packet # 0 for every new file) once REQUEST_ACK message is received
-  - Checksum = (1st 2 file bytes) NAND (2nd 2 file bytes)
+  - Checksum = (1st 4 file bytes) OR (2nd 4 file bytes)
   - Case: Checksum fails or packet isn't received
     - Receiver keeps track of all packets that must be resent
     - Receiver sends a FILE_RECEIVED_ACK with data field 0x2 indicating that the file wasn't wholly received
