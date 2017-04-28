@@ -10,9 +10,11 @@ public class Sender
     private final byte[] CONNECT_REQUEST = {0x00};
     private final byte CONNECT_ACK = 0x01;
     private final byte DATA_FLAG = 0x02;
-    private final byte FILE_RECEIVED_ACK_FLAG = 0x03;
-    private final byte RESEND_REQUEST_FLAG = 0x04;
-    private final byte[] RESEND_ACK = {0x05};
+    private final byte SEND_REQUEST_FLAG = 0x03;
+    private final byte SEND_REQUEST_ACK = 0x04;
+    private final byte FILE_RECEIVED_ACK_FLAG = 0x05;
+    private final byte RESEND_REQUEST_FLAG = 0x07;
+    private final byte[] RESEND_ACK = {0x08};
 
     public static void main(String args[]) throws Exception
     {
@@ -125,6 +127,51 @@ public class Sender
         }
         //Command received
         System.out.println("Type filename");
-        File transferFile = new File(in.next()); // File that is being sent
+        String filename = in.next();
+
+        // Gathers information on chosen file and encapsulating them in sendRequest byte array
+        File transferFile = new File(filename); // File that is being sent
+        int fileSize = (int)transferFile.length();
+        int numOfPackets = fileSize/1000;
+        if (numOfPackets%1000 != 0) {numOfPackets++;}
+        byte[] sendRequest = new byte[3 + filename.length()];
+        sendRequest[0] = SEND_REQUEST_FLAG;
+
+        // Breaks number of packets into two bytes; assumes number of packets < 65536 (2 bytes)
+        sendRequest[1] = (byte)(numOfPackets >> 8);
+        sendRequest[2] = (byte)(numOfPackets);
+
+        // Sends filename as array of characters casted as bytes
+        char[] filenamearray = filename.toCharArray();
+        for (int i = 0; i < filename.length() - 1; i++)
+        {
+            sendRequest[i+3] = (byte)filenamearray[i];
+        }
+        packet = new DatagramPacket(sendRequest, sendRequest.length, InetAddress.getLocalHost(), 11110);
+
+
+
+        // Waits for SEND_REQUEST_ACK
+        boolean sendRequestAcked = false;
+        timeout = false;
+        while (!sendRequestAcked)
+        {
+            socket.send(packet);
+            System.out.println("Attempting connection...");
+            socket.setSoTimeout(30*1000);
+            try {socket.receive(receivepacket);}
+            catch(Exception e) {timeout = true; break;}
+
+            if (receivepacket.getData()[0] == SEND_REQUEST_ACK) {sendRequestAcked = true;}
+        }
+        if (timeout) {System.out.println("Timeout has occurred; exiting application"); return;}
+
+
+
+        // Send request acknowledged, begin sending data packets
+        for (int q = 0; q < numOfPackets - 1; q++)
+        {
+            
+        }
     }
 }
