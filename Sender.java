@@ -15,6 +15,10 @@ public class Sender
     private final byte FILE_RECEIVED_ACK_FLAG = 0x05;
     private final byte RESEND_REQUEST_FLAG = 0x07;
     private final byte[] RESEND_ACK = {0x08};
+    private final byte[] TEARDOWN_REQUEST = {0x09};
+    private final byte TEARDOWN_ACK = 0x0a;
+
+
 
     public static void main(String args[]) throws Exception
     {
@@ -40,6 +44,8 @@ public class Sender
             thesender.runUDP();
         }
     }
+
+
 
     private void runTCP() throws Exception
     {
@@ -87,11 +93,13 @@ public class Sender
         System.out.println("File successfully transferred!");
     }
 
+
+
     private void runUDP() throws Exception
     {
         byte[] buffer = new byte[10000]; // Long enough for anything
         DatagramPacket receivepacket = new DatagramPacket(buffer, buffer.length);
-        DatagramSocket socket = new DatagramSocket(11109); // Creates DatagramSocket on port 11109
+        DatagramSocket socket = new DatagramSocket(11109, InetAddress.getLocalHost()); // Creates DatagramSocket on port 11109
         DatagramPacket packet = new DatagramPacket(CONNECT_REQUEST, CONNECT_REQUEST.length, InetAddress.getLocalHost(), 11110); // Host must listen on port 11110
 
 
@@ -107,7 +115,6 @@ public class Sender
             socket.setSoTimeout(30*1000);
             try {socket.receive(receivepacket);}
             catch(Exception e) {timeout = true; break;}
-
             if (receivepacket.getData()[0] == CONNECT_ACK) {connectionacked = true;}
         }
         if (timeout) {System.out.println("Timeout has occurred; exiting application"); return;}
@@ -117,15 +124,37 @@ public class Sender
 
         // Command prompt
         Scanner in = new Scanner(System.in);
+        boolean teardown = false;
         String command = "";
         while (command.isEmpty()) // Waits for user to type SEND
         {
             command = in.next();
             if (command.equals("SEND")) {break;}
+            else if (command.equals("TEARDOWN")) {teardown = true; break;}
             command = "";
             System.out.println("Invalid command");
         }
         //Command received
+        if (teardown)
+        {
+            boolean teardownacked = false;
+            timeout = false;
+            while(!teardownacked)
+            {
+                packet = new DatagramPacket(TEARDOWN_REQUEST, TEARDOWN_REQUEST.length, InetAddress.getLocalHost(), 11110);
+                socket.send(packet);
+                System.out.println("Teardown commenced...");
+                socket.setSoTimeout(30*1000);
+                try {socket.receive(receivepacket);}
+                catch(Exception e) {continue;}
+
+                if (receivepacket.getData()[0] == TEARDOWN_ACK) {teardownacked = true;}
+            }
+            socket.close();
+            return;
+        }
+
+
         System.out.println("Type filename");
         String filename = in.next();
 
@@ -137,7 +166,7 @@ public class Sender
         byte[] sendRequest = new byte[3 + filename.length()];
         sendRequest[0] = SEND_REQUEST_FLAG;
 
-        // Breaks number of packets into two bytes; assumes number of packets < 65536 (2 bytes)
+        // Breaks number of packets into two bytes MSB first; assumes number of packets < 65536 (2 bytes)
         sendRequest[1] = (byte)(numOfPackets >> 8);
         sendRequest[2] = (byte)(numOfPackets);
 
@@ -165,13 +194,17 @@ public class Sender
             if (receivepacket.getData()[0] == SEND_REQUEST_ACK) {sendRequestAcked = true;}
         }
         if (timeout) {System.out.println("Timeout has occurred; exiting application"); return;}
+        System.out.println("SEND_REQUEST_ACK received; send data now.");
+        socket.close();
 
 
 
         // Send request acknowledged, begin sending data packets
+        /*
         for (int q = 0; q < numOfPackets - 1; q++)
         {
-            
+
         }
+        */
     }
 }
