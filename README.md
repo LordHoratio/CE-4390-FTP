@@ -3,7 +3,7 @@ Custom file transfer protocol for class project
 
 Use Case:
   1. User runs application and command prompt opens
-  2. User types CONNECT and prompt will then ask for an IP address and the desired transport protocol
+  2. User types CONNECT_TCP or CONNECT_UDP, depending on which protocol is desired
   3. Program confirms whether or not connection with receiver was sucessful
   4. User sends file with SEND command followed by the name of the file being sent, which must be in same folder as application
   5. Program sends file with desired transport protocol and confirms when the transfer is complete. File should appear in same folder
