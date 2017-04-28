@@ -62,7 +62,7 @@ public class Sender
         int byteCounter2 = 1000; // Display the last byte of segment
         int arraySize = 1000; // Arbitrary buffer size
         int fileSize = (int) transferFile.length();
-        byte [] byteArray = new byte[arraySize]; // Hold file data temporarily. Holds 50 bytes
+        byte [] byteArray = new byte[arraySize]; // Hold file data temporarily. Holds 1000 bytes
         FileInputStream inputStream = new FileInputStream(transferFile); //
         BufferedInputStream bufferIn = new BufferedInputStream(inputStream);
         while ((bufferIn.read(byteArray,0,arraySize)) != -1) // Run till end of file flag is reached
@@ -93,6 +93,7 @@ public class Sender
         DatagramPacket packet = new DatagramPacket(CONNECT_REQUEST, CONNECT_REQUEST.length, InetAddress.getLocalHost(), 11110); // Host must listen on port 11110
 
 
+
         // Establishes application layer connection through CONNECT_REQUEST and CONNECT_ACK messages
         // Times out and exits after 30 seconds with no response
         boolean connectionacked = false;
@@ -109,6 +110,7 @@ public class Sender
         }
         if (timeout) {System.out.println("Timeout has occurred; exiting application"); return;}
         System.out.println("Connected to network!"); // Connection acknowledged by receiver
+
 
 
         // Command prompt
