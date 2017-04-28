@@ -7,12 +7,12 @@ import java.io.*;
 import java.net.*;
 public class Sender
 {
-    final byte[] CONNECT_REQUEST = {0x00};
-    final byte[] CONNECT_ACK = {0x01};
-    final byte DATA_FLAG = 0x02;
-    final byte FILE_RECEIVED_ACK_FLAG = 0x03;
-    final byte RESEND_REQUEST_FLAG = 0x04;
-    final byte[] RESEND_ACK = {0x05};
+    private final byte[] CONNECT_REQUEST = {0x00};
+    private final byte CONNECT_ACK = 0x01;
+    private final byte DATA_FLAG = 0x02;
+    private final byte FILE_RECEIVED_ACK_FLAG = 0x03;
+    private final byte RESEND_REQUEST_FLAG = 0x04;
+    private final byte[] RESEND_ACK = {0x05};
 
     public static void main(String args[]) throws Exception
     {
@@ -39,7 +39,7 @@ public class Sender
         }
     }
 
-    public void runTCP() throws Exception
+    private void runTCP() throws Exception
     {
         ServerSocket sockServer = new ServerSocket(11109); // Opens socket with port 11109
         System.out.println("Attempting connection...");
@@ -85,14 +85,33 @@ public class Sender
         System.out.println("File successfully transferred!");
     }
 
-    public void runUDP() throws Exception
+    private void runUDP() throws Exception
     {
         byte[] buffer = new byte[10000]; // Long enough for anything
         DatagramPacket receivepacket = new DatagramPacket(buffer, buffer.length);
         DatagramSocket socket = new DatagramSocket(11109); // Creates DatagramSocket on port 11109
-        DatagramPacket packet = new DatagramPacket(CONNECT_REQUEST, CONNECT_REQUEST.length, InetAddress.getLocalHost(), 11109);
-        socket.send(packet);
-        socket.receive(receivepacket);
+        DatagramPacket packet = new DatagramPacket(CONNECT_REQUEST, CONNECT_REQUEST.length, InetAddress.getLocalHost(), 11110); // Host must listen on port 11110
+
+
+        // Establishes application layer connection through CONNECT_REQUEST and CONNECT_ACK messages
+        // Times out and exits after 30 seconds with no response
+        boolean connectionacked = false;
+        boolean timeout = false;
+        while (!connectionacked)
+        {
+            socket.send(packet);
+            System.out.println("Attempting connection...");
+            socket.setSoTimeout(30*1000);
+            try {socket.receive(receivepacket);}
+            catch(Exception e) {timeout = true; break;}
+
+            if (receivepacket.getData()[0] == CONNECT_ACK) {connectionacked = true;}
+        }
+        if (timeout) {System.out.println("Timeout has occurred; exiting application"); return;}
+        System.out.println("Connected to network!"); // Connection acknowledged by receiver
+
+
+        // Command prompt
         Scanner in = new Scanner(System.in);
         String command = "";
         while (command.isEmpty()) // Waits for user to type SEND
