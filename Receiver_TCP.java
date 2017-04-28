@@ -1,4 +1,4 @@
-/** Author: Alexander Long and Michael Nelson
+/** Author: Alexander Long
  *  Date: 4/27/2017
  *  Receiver_TCP: Listens for the TCP connection created by sender
  */
