@@ -13,6 +13,7 @@ Use Case:
      
 FTP Messages:
 Every message starts with a 1 byte flag indicating what it is, followed by a variety of different fields depending on message type
+
 0. TCP_CONNECT_REQUEST - [Flag (0x00) - 1 byte]
 
 1. UDP_CONNECT_REQUEST - [Flag (0x01) - 1 byte]
