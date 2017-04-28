@@ -7,6 +7,13 @@ import java.io.*;
 import java.net.*;
 public class Sender
 {
+    final byte[] CONNECT_REQUEST = {0x00};
+    final byte[] CONNECT_ACK = {0x01};
+    final byte DATA_FLAG = 0x02;
+    final byte FILE_RECEIVED_ACK_FLAG = 0x03;
+    final byte RESEND_REQUEST_FLAG = 0x04;
+    final byte[] RESEND_ACK = {0x05};
+
     public static void main(String args[]) throws Exception
     {
         Scanner in = new Scanner(System.in);
@@ -27,7 +34,8 @@ public class Sender
         }
         else
         {
-
+            Sender thesender = new Sender();
+            thesender.runUDP();
         }
     }
 
@@ -79,9 +87,15 @@ public class Sender
 
     public void runUDP() throws Exception
     {
+        byte[] buffer = new byte[10000]; // Long enough for anything
+        DatagramPacket receivepacket = new DatagramPacket(buffer, buffer.length);
+        DatagramSocket socket = new DatagramSocket(11109); // Creates DatagramSocket on port 11109
+        DatagramPacket packet = new DatagramPacket(CONNECT_REQUEST, CONNECT_REQUEST.length, InetAddress.getLocalHost(), 11109);
+        socket.send(packet);
+        socket.receive(receivepacket);
         Scanner in = new Scanner(System.in);
         String command = "";
-        while (command.isEmpty()) //Waits for user to type SEND
+        while (command.isEmpty()) // Waits for user to type SEND
         {
             command = in.next();
             if (command.equals("SEND")) {break;}
