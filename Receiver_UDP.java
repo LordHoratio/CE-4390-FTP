@@ -51,17 +51,15 @@ public class Receiver_UDP
                 int MSB = (int)(receivepacket.getData()[1]*256);
                 int LSB = (int)(receivepacket.getData()[2]);
                 int numOfPackets = MSB + LSB;
-                System.out.println("# of packets = " + numOfPackets);
 
 
                 // Extract char array at the end of SEND_REQUEST and reconstruct filename as String
                 char[] filenamechar = new char[receivepacket.getData().length - 3];
-                for (int i = 3; i < receivepacket.getData().length - 1; i++)
+                for (int i = 3; i < receivepacket.getData().length; i++)
                 {
                     filenamechar[i - 3] = (char)receivepacket.getData()[i];
                 }
                 String filename = new String(filenamechar);
-                System.out.println(filename);
             }
         }
 

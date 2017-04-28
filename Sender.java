@@ -172,7 +172,7 @@ public class Sender
 
         // Sends filename as array of characters casted as bytes
         char[] filenamearray = filename.toCharArray();
-        for (int i = 0; i < filename.length() - 1; i++)
+        for (int i = 0; i < filename.length(); i++)
         {
             sendRequest[i+3] = (byte)filenamearray[i];
         }
@@ -186,7 +186,7 @@ public class Sender
         while (!sendRequestAcked)
         {
             socket.send(packet);
-            System.out.println("Attempting connection...");
+            System.out.println("Sending SEND_ACK_REQUEST message...");
             socket.setSoTimeout(30*1000);
             try {socket.receive(receivepacket);}
             catch(Exception e) {timeout = true; break;}
@@ -194,8 +194,8 @@ public class Sender
             if (receivepacket.getData()[0] == SEND_REQUEST_ACK) {sendRequestAcked = true;}
         }
         if (timeout) {System.out.println("Timeout has occurred; exiting application"); return;}
-        System.out.println("SEND_REQUEST_ACK received; send data now.");
-        socket.close();
+        System.out.println("SEND_REQUEST_ACK received; sending data now.");
+        socket.close(); // Placeholder until rest is complete
 
 
 
