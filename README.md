@@ -34,9 +34,9 @@ Every message starts with a 1 byte flag indicating what it is, followed by a var
 
 9. RESEND_REQUEST - [Flag (0x09) - 1 byte]_[Packet # - 5 bytes]
 
-10. TEARDOWN_REQUEST - [Flag (0x0A) - 1 byte]
+10. TEARDOWN_REQUEST - [Flag (0x0a) - 1 byte]
 
-11. TTEARDOWN_ACK - [Flag (0x0B) - 1 byte]
+11. TTEARDOWN_ACK - [Flag (0x0b) - 1 byte]
 
 Protocol:
 - Allows user to choose protocol
