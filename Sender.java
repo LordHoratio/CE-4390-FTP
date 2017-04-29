@@ -13,7 +13,6 @@ public class Sender
     private final byte SEND_REQUEST_FLAG = 0x03;
     private final byte SEND_REQUEST_ACK = 0x04;
     private final byte DATA_ACK_FLAG = 0x05;
-    private final byte[] RESEND_ACK = {0x08};
     private final byte[] TEARDOWN_REQUEST = {0x09};
     private final byte TEARDOWN_ACK = 0x0a;
 
@@ -165,7 +164,7 @@ public class Sender
             int numOfPackets = fileSize/1000;
             if (numOfPackets%1000 != 0) {numOfPackets++;}
             System.out.println("NumofPackets = " + numOfPackets);
-            byte[] sendRequest = new byte[3 + filename.length()];
+            byte[] sendRequest = new byte[3 + filename.length()*2];
             sendRequest[0] = SEND_REQUEST_FLAG;
 
             // Breaks number of packets into two bytes MSB first; assumes number of packets < 65536 (2 bytes)
@@ -176,7 +175,8 @@ public class Sender
             char[] filenamearray = filename.toCharArray();
             for (int i = 0; i < filename.length(); i++)
             {
-                sendRequest[i+3] = (byte)filenamearray[i];
+                sendRequest[2*i+3] = (byte)(filenamearray[i] >> 8);
+                sendRequest[2*i+4] = (byte)(filenamearray[i]);
             }
             packet = new DatagramPacket(sendRequest, sendRequest.length, InetAddress.getLocalHost(), 11110);
 
@@ -218,7 +218,6 @@ public class Sender
                 }
 
                 packet = new DatagramPacket(datapacket, datapacket.length, InetAddress.getLocalHost(), 11110);
-                System.out.println("Size of data packet is " + datapacket.length);
                 socket.send(packet);
                 socket.receive(receivepacket);
                 if (receivepacket.getData()[0] == DATA_ACK_FLAG)

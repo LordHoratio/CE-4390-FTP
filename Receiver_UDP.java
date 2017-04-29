@@ -9,6 +9,7 @@ public class Receiver_UDP
 {
     private final byte CONNECT_REQUEST = 0x00;
     private final byte[] CONNECT_ACK = {0x01};
+    private final byte DATA_FLAG = 0x02;
     private final byte SEND_REQUEST_FLAG = 0x03;
     private final byte[] SEND_REQUEST_ACK = {0x04};
     private final byte DATA_ACK_FLAG = 0x05;
@@ -49,44 +50,65 @@ public class Receiver_UDP
             else if (receivepacket.getData()[0] == SEND_REQUEST_FLAG)
             {
                 // Reconstruct # of packets from the 2nd two bytes received, MSB first
-                int MSB = (int)(receivepacket.getData()[1] & 0xff)*256;
-                int LSB = (int)(receivepacket.getData()[2] &0xff);
+                int MSB = (receivepacket.getData()[1] & 0xff)*256; // & with 0xff to correct signed byte
+                int LSB = (receivepacket.getData()[2] & 0xff); // & with 0xff to correct signed byte
                 int numOfPackets = MSB + LSB;
-                System.out.println(numOfPackets);
 
 
                 // Extract char array at the end of SEND_REQUEST and reconstruct filename as String
                 char[] filenamechar = new char[receivepacket.getData().length - 3];
-                for (int i = 3; i < receivepacket.getData().length; i++)
+                for (int i = 3; i < receivepacket.getData().length; i = i+2)
                 {
-                    filenamechar[i - 3] = (char)receivepacket.getData()[i];
+                    byte a = receivepacket.getData()[i];
+                    byte b = receivepacket.getData()[i+1];
+                    filenamechar[(i - 3)/2] = (char)((a << 8) | (b & 0xff));
                 }
                 String filename = new String(filenamechar);
-                String append = "_received";
-                filename = filename.concat(append);
+                String append = "received_";
+                filename = append.concat(filename);
+                System.out.println(filename);
 
                 packet = new DatagramPacket(SEND_REQUEST_ACK, SEND_REQUEST_ACK.length, InetAddress.getLocalHost(), 11109);
                 socket.send(packet);
 
 
                 // Ack sent; begin receiving data packets
-                FileOutputStream received = new FileOutputStream("Received.png");
+                FileOutputStream received = new FileOutputStream(filename);
                 BufferedOutputStream bufferout = new BufferedOutputStream(received);
                 int z = 0;
                 while (z < numOfPackets)
                 {
                     socket.receive(receivepacket);
-                    System.out.println("Size of received data packet is " + receivepacket.getData().length);
+
+                    // If wrong packet is received, ACK the last sequence # so sender will resend last unACKed packet
+                    if (receivepacket.getData()[0] != DATA_FLAG)
+                    {
+                        z--;
+                        byte[] dataAck = new byte[3];
+                        dataAck[0] = DATA_ACK_FLAG;
+                        dataAck[1] = (byte)(z >> 8);
+                        dataAck[2] = (byte)(z);
+                        packet = new DatagramPacket(dataAck, dataAck.length, InetAddress.getLocalHost(), 11109);
+                        socket.send(packet);
+                    }
+
+                    // Write to the file
                     bufferout.write(receivepacket.getData(), 3, receivepacket.getData().length - 3);
-                    MSB = (int)(receivepacket.getData()[1] & 0xff)*256;
-                    LSB = (int)(receivepacket.getData()[2] & 0xff);
+
+                    // Reconstruct sequence #
+                    MSB = (int)(receivepacket.getData()[1] & 0xff)*256; // & with 0xff to correct signed byte
+                    LSB = (int)(receivepacket.getData()[2] & 0xff); // & with 0xff to correct signed byte
                     int sequencenum = MSB + LSB;
+
+                    // ACK the sequence # just received by sending it back
                     byte[] dataAck = new byte[3];
                     dataAck[0] = DATA_ACK_FLAG;
                     dataAck[1] = (byte)(sequencenum >> 8);
                     dataAck[2] = (byte)(sequencenum);
                     packet = new DatagramPacket(dataAck, dataAck.length, InetAddress.getLocalHost(), 11109);
-                    System.out.println(z);
+
+                    // Increment the last ACKed sequence # by 1
+                    // z does not continue incrementing unless sent the next sequence #
                     z = sequencenum+1;
                     socket.send(packet);
                 }
