@@ -1,4 +1,4 @@
-/** Author: Alexander Long and Michael Nelson
+/** Author: Michael Nelson
  *  Date: 4/27/2017
  *  Receiver_UDP: Listens for the UDP connection created by sender and receives file
  */
