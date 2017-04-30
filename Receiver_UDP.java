@@ -35,7 +35,7 @@ public class Receiver_UDP
 
         // CONNECT_REQUEST received; send CONNECT_ACK
         if (receivepacket.getData()[0] != CONNECT_REQUEST) {return;}
-        DatagramPacket packet = new DatagramPacket(CONNECT_ACK, CONNECT_ACK.length, InetAddress.getLocalHost(), 11109);
+        DatagramPacket packet = new DatagramPacket(CONNECT_ACK, CONNECT_ACK.length, receivepacket.getAddress(), 11109);
         socket.send(packet);
 
 
@@ -54,21 +54,19 @@ public class Receiver_UDP
                 int LSB = (receivepacket.getData()[2] & 0xff); // & with 0xff to correct signed byte
                 int numOfPackets = MSB + LSB;
 
+                int filenamelength = receivepacket.getData()[3];
 
                 // Extract char array at the end of SEND_REQUEST and reconstruct filename as String
-                char[] filenamechar = new char[receivepacket.getData().length - 3];
-                for (int i = 3; i < receivepacket.getData().length; i = i+2)
+                byte[] filenamebyte = new byte[filenamelength];
+                for (int i = 4; i < filenamelength + 4; i++)
                 {
-                    byte a = receivepacket.getData()[i];
-                    byte b = receivepacket.getData()[i+1];
-                    filenamechar[(i - 3)/2] = (char)((a << 8) | (b & 0xff));
+                    filenamebyte[i - 4] = receivepacket.getData()[i];
                 }
-                String filename = new String(filenamechar);
+                String filename = new String(filenamebyte);
                 String append = "received_";
                 filename = append.concat(filename);
-                System.out.println(filename);
 
-                packet = new DatagramPacket(SEND_REQUEST_ACK, SEND_REQUEST_ACK.length, InetAddress.getLocalHost(), 11109);
+                packet = new DatagramPacket(SEND_REQUEST_ACK, SEND_REQUEST_ACK.length, receivepacket.getAddress(), 11109);
                 socket.send(packet);
 
 
@@ -88,7 +86,7 @@ public class Receiver_UDP
                         dataAck[0] = DATA_ACK_FLAG;
                         dataAck[1] = (byte)(z >> 8);
                         dataAck[2] = (byte)(z);
-                        packet = new DatagramPacket(dataAck, dataAck.length, InetAddress.getLocalHost(), 11109);
+                        packet = new DatagramPacket(dataAck, dataAck.length, receivepacket.getAddress(), 11109);
                         socket.send(packet);
                     }
 
@@ -96,8 +94,8 @@ public class Receiver_UDP
                     bufferout.write(receivepacket.getData(), 3, receivepacket.getData().length - 3);
 
                     // Reconstruct sequence #
-                    MSB = (int)(receivepacket.getData()[1] & 0xff)*256; // & with 0xff to correct signed byte
-                    LSB = (int)(receivepacket.getData()[2] & 0xff); // & with 0xff to correct signed byte
+                    MSB = (receivepacket.getData()[1] & 0xff)*256; // & with 0xff to correct signed byte
+                    LSB = (receivepacket.getData()[2] & 0xff); // & with 0xff to correct signed byte
                     int sequencenum = MSB + LSB;
 
                     // ACK the sequence # just received by sending it back
@@ -105,7 +103,7 @@ public class Receiver_UDP
                     dataAck[0] = DATA_ACK_FLAG;
                     dataAck[1] = (byte)(sequencenum >> 8);
                     dataAck[2] = (byte)(sequencenum);
-                    packet = new DatagramPacket(dataAck, dataAck.length, InetAddress.getLocalHost(), 11109);
+                    packet = new DatagramPacket(dataAck, dataAck.length, receivepacket.getAddress(), 11109);
 
                     // Increment the last ACKed sequence # by 1
                     // z does not continue incrementing unless sent the next sequence #
@@ -119,7 +117,7 @@ public class Receiver_UDP
 
 
         // TEARDOWN_REQUEST received; send TEARDOWN_ACK then close socket and end application
-        packet = new DatagramPacket(TEARDOWN_ACK, TEARDOWN_ACK.length, InetAddress.getLocalHost(), 11109);
+        packet = new DatagramPacket(TEARDOWN_ACK, TEARDOWN_ACK.length, receivepacket.getAddress(), 11109);
         socket.send(packet);
         socket.close();
     }

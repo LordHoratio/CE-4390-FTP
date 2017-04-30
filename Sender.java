@@ -95,10 +95,16 @@ public class Sender
 
     private void runUDP() throws Exception
     {
+        // Prompt for address
+        System.out.println("Type in IP Address or LOCALHOST");
+        Scanner in = new Scanner(System.in);
+        String theaddress = in.next();
+        if (theaddress.equals("LOCALHOST")) {theaddress = InetAddress.getLocalHost().getHostAddress();}
+
         byte[] buffer = new byte[10000]; // Long enough for anything
         DatagramPacket receivepacket = new DatagramPacket(buffer, buffer.length);
         DatagramSocket socket = new DatagramSocket(11109, InetAddress.getLocalHost()); // Creates DatagramSocket on port 11109
-        DatagramPacket packet = new DatagramPacket(CONNECT_REQUEST, CONNECT_REQUEST.length, InetAddress.getLocalHost(), 11110); // Host must listen on port 11110
+        DatagramPacket packet = new DatagramPacket(CONNECT_REQUEST, CONNECT_REQUEST.length, InetAddress.getByName(theaddress), 11110); // Host must listen on port 11110
 
 
 
@@ -121,7 +127,7 @@ public class Sender
 
 
         // Command prompt
-        Scanner in = new Scanner(System.in);
+        in = new Scanner(System.in);
         boolean teardown = false;
         while (!teardown)
         {
@@ -141,7 +147,7 @@ public class Sender
                 timeout = false;
                 while(!teardownacked)
                 {
-                    packet = new DatagramPacket(TEARDOWN_REQUEST, TEARDOWN_REQUEST.length, InetAddress.getLocalHost(), 11110);
+                    packet = new DatagramPacket(TEARDOWN_REQUEST, TEARDOWN_REQUEST.length, InetAddress.getByName(theaddress), 11110);
                     socket.send(packet);
                     System.out.println("Teardown commenced...");
                     socket.setSoTimeout(30*1000);
@@ -163,7 +169,6 @@ public class Sender
             int fileSize = (int)transferFile.length();
             int numOfPackets = fileSize/1000;
             if (numOfPackets%1000 != 0) {numOfPackets++;}
-            System.out.println("NumofPackets = " + numOfPackets);
             byte[] sendRequest = new byte[3 + filename.length()*2];
             sendRequest[0] = SEND_REQUEST_FLAG;
 
@@ -171,14 +176,16 @@ public class Sender
             sendRequest[1] = (byte)(numOfPackets >> 8);
             sendRequest[2] = (byte)(numOfPackets);
 
+            // Sends file name length so it doesn't unload entire buffer
+            sendRequest[3] = (byte)(filename.length());
+
             // Sends filename as array of characters casted as bytes
-            char[] filenamearray = filename.toCharArray();
+            byte[] filenamearray = filename.getBytes();
             for (int i = 0; i < filename.length(); i++)
             {
-                sendRequest[2*i+3] = (byte)(filenamearray[i] >> 8);
-                sendRequest[2*i+4] = (byte)(filenamearray[i]);
+                sendRequest[i+4] = filenamearray[i];
             }
-            packet = new DatagramPacket(sendRequest, sendRequest.length, InetAddress.getLocalHost(), 11110);
+            packet = new DatagramPacket(sendRequest, sendRequest.length, InetAddress.getByName(theaddress), 11110);
 
 
 
@@ -217,9 +224,12 @@ public class Sender
                     datapacket[j + 3] = outputbuffer[j];
                 }
 
-                packet = new DatagramPacket(datapacket, datapacket.length, InetAddress.getLocalHost(), 11110);
+                packet = new DatagramPacket(datapacket, datapacket.length, InetAddress.getByName(theaddress), 11110);
                 socket.send(packet);
                 socket.receive(receivepacket);
+
+                // Receiver sends the last ACKed sequence #
+                // If last ACKed # isn't the last packet # sent, q decrements and the packet is therefore resent
                 if (receivepacket.getData()[0] == DATA_ACK_FLAG)
                 {
                     int MSB = (int)(receivepacket.getData()[1] & 0xff)*256;
